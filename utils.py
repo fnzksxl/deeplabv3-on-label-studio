@@ -1,51 +1,25 @@
+import config
+
 import cv2
 import numpy as np
-import torch
-import torch.nn as nn
 import matplotlib.pyplot as plt
 
-def return_mask_label_name(mask,label_map):
-    object_masks = []
-    to_Seperate_mask = mask.astype(np.uint8)
+import torch
+import torch.nn as nn
 
-    for label in np.unique(mask):
-        if label == 0:
-            continue  # Skip background (assuming background is labeled as 0)
-        
-        # Create a binary mask for the current label
-        label_mask = (to_Seperate_mask == label).astype(np.uint8)
-
-        # Find contours of the binary mask
-        contours, _ = cv2.findContours(label_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        print(len(contours))
-        for contour  in contours:
-            label_num = to_Seperate_mask[contour[0][0][1], contour[0][0][0]]
-            print("Label Number >>> ")
-            print(label_num)
-            if label_num in np.array(list(label_map.keys()))+1:
-                object_mask = np.zeros_like(mask,dtype=np.uint8)
-                cv2.drawContours(object_mask,[contour],0,1,-1)
-                
-                object_masks.append((object_mask, label_num))
-    
-    return object_masks
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 def mask_to_polygons(mask):
+    # Convert mask to CV_8UC1 format
+    mask_cv = (mask * 255).astype(np.uint8)
+
+    contours, _ = cv2.findContours(mask_cv, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
     polygons = []
-    for label in np.unique(mask):
-        if label == 0:
-            continue  # Skip background (assuming background is labeled as 0)
-        
-        # Create a binary mask for the current label
-        label_mask = (mask == label).astype(np.uint8)
-
-        # Find contours of the binary mask
-        contours, _ = cv2.findContours(label_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-        for contour in contours:
-            epsilon = 0.0005 * cv2.arcLength(contour, True)
-            approx_polygon = cv2.approxPolyDP(contour, epsilon, True)
-            polygons.append((approx_polygon,label))
+    for contour in contours:
+        epsilon = 0.0005 * cv2.arcLength(contour, True)
+        approx_polygon = cv2.approxPolyDP(contour, epsilon, True)
+        polygons.append(approx_polygon)
 
     return polygons
 
@@ -80,7 +54,7 @@ def cross_entropy2d(logit, target, ignore_index=255, weight=None, size_average=T
     if weight is None:
         criterion = nn.CrossEntropyLoss(weight=weight, ignore_index=ignore_index, size_average=False)
     else:
-        criterion = nn.CrossEntropyLoss(weight=torch.from_numpy(np.array(weight)).float().cuda(), ignore_index=ignore_index, size_average=False)
+        criterion = nn.CrossEntropyLoss(weight=torch.from_numpy(np.array(weight)).float().to(device), ignore_index=ignore_index, size_average=False)
     loss = criterion(logit, target.long())
 
     if size_average:
@@ -132,7 +106,7 @@ def decode_segmap(label_mask, plot=False):
     else:
         return rgb
 
-def get_iou(pred, gt, n_classes=2):
+def get_iou(pred, gt, n_classes):
     total_iou = 0.0
     for i in range(len(pred)):
         pred_tmp = pred[i]

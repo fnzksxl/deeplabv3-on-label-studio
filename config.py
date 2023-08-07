@@ -1,3 +1,4 @@
+n_classes = 2
 batch_size = 8 
 nEpochs = 150
 snapshot = 10 # {snapshot} 에포크마다 모델 저장
@@ -9,6 +10,7 @@ nAveGrad = 1
 train_val_rate = 0.8 # train 8 : 2 val
 nTestInterval = 5
 save_dir = 'saved_model'
+
 import custom_transfomrs as tr
 from torchvision import transforms
 
