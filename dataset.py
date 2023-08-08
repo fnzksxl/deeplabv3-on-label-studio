@@ -14,7 +14,7 @@ class DeepLabDataset(Dataset):
         return len(self.images)
     
     def __getitem__(self,idx):
-        _img,_label = self._make_img_gt_point_pair(idx)
+        _img,_label = self._make_img_gt_point_pair(idx) 
         sample = {'image' : _img, 'label' : _label}
         
         if self.transform is not None:
@@ -23,8 +23,8 @@ class DeepLabDataset(Dataset):
         return sample
     
     def _make_img_gt_point_pair(self,idx):
-        _img = Image.open('./image/'+self.images[idx]).convert('RGB')
-        _label =Image.open('./mask/'+self.labels[idx])
+        _img = Image.open(self.images[idx]).convert('RGB')
+        _label =Image.open(self.labels[idx])
         
         return _img,_label
     
